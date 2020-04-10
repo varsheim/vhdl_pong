@@ -1,5 +1,7 @@
 NET "i_Clk"                  LOC = P129  | IOSTANDARD = LVCMOS33 | PERIOD = 12MHz;
-NET "i_Switch"          LOC = P80   | PULLUP  | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "i_Switch[0]"          LOC = P80   | PULLUP  | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "i_Switch[1]"          LOC = P79   | PULLUP  | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "i_UartRX"          	LOC = P31   | PULLUP  | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
 
 NET "o_VGA_HSync"             LOC = P93   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
 NET "o_VGA_VSync"             LOC = P92   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
@@ -11,3 +13,17 @@ NET "o_VGA_Grn[1]"             LOC = P101   | IOSTANDARD = LVCMOS33 | SLEW = SLO
 NET "o_VGA_Grn[2]"             LOC = P102   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
 NET "o_VGA_Blu[0]"             LOC = P96   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
 NET "o_VGA_Blu[1]"             LOC = P98   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+
+NET "o_LED"             LOC = P46   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegEn[0]"             LOC = P120   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegEn[1]"             LOC = P121   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegEn[2]"             LOC = P124   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegLED[0]"             LOC = P113   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegLED[1]"             LOC = P112   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegLED[2]"             LOC = P111   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegLED[3]"             LOC = P110   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegLED[4]"             LOC = P117   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegLED[5]"             LOC = P116   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegLED[6]"             LOC = P115   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_SegLED[7]"             LOC = P114   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
+NET "o_UartTX"          		LOC = P32   | IOSTANDARD = LVCMOS33 | SLEW = SLOW | DRIVE = 12;
