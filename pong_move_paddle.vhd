@@ -6,7 +6,6 @@ use IEEE.std_logic_unsigned.all;
 entity pong_move_paddle is
 	generic (
 		g_Y_PADDLE_START_POS : integer;
-		g_Y_PADDLE_SPEED : integer;
 		g_X_PADDLE_POS : integer;
 		g_PADDLE_WIDTH : integer;
 		g_PADDLE_LENGTH : integer

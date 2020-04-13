@@ -26,8 +26,6 @@ architecture Behavioral of top_pong is
 	constant c_MAX_SCORE : integer := 9;
 	constant c_PADDLE_LEFT_X_POS : integer := 10;
 	constant c_PADDLE_RIGHT_X_POS : integer := 618;
-	constant c_BALL_SPEED : integer := 1; -- pixels per quanta (60Hz)
-	constant c_PADDLE_SPEED : integer := 1;
 	
 	signal w_Paddle_L_Red, w_Paddle_R_Red, w_Ball_Red : std_logic_vector(2 downto 0);
 	signal w_Paddle_L_Grn, w_Paddle_R_Grn, w_Ball_Grn : std_logic_vector(2 downto 0);
@@ -58,9 +56,7 @@ begin
 		g_BALL_SIZE => c_BALL_SIZE,
 		g_MAX_SCORE => c_MAX_SCORE,
 		g_PADDLE_LEFT_X_POS => c_PADDLE_LEFT_X_POS,
-		g_PADDLE_RIGHT_X_POS => c_PADDLE_RIGHT_X_POS,
-		g_BALL_SPEED => c_BALL_SPEED,
-		g_PADDLE_SPEED => c_PADDLE_SPEED
+		g_PADDLE_RIGHT_X_POS => c_PADDLE_RIGHT_X_POS
 	)
 	port map (
 		i_Clk => i_Clk,
