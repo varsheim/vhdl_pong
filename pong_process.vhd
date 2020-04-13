@@ -20,18 +20,18 @@ entity pong_process is
 		i_Control : in std_logic_vector(4 downto 0);
 		o_Score_A : out std_logic_vector(3 downto 0);
 		o_Score_B : out std_logic_vector(3 downto 0);
-		o_X_Ball_Start : out integer range 0 to (639 - g_BALL_SIZE);
-		o_X_Ball_End : out integer range 0 to 639;
-		o_Y_Ball_Start : out integer range 0 to (479 - g_BALL_SIZE);
-		o_Y_Ball_End : out integer range 0 to 479;
-		o_X_Paddle_L_Start : out integer range 0 to (639 - g_PADDLE_WIDTH);
-		o_X_Paddle_L_End : out integer range 0 to 639;
-		o_Y_Paddle_L_Start : out integer range 0 to (479 - g_PADDLE_LENGTH);
-		o_Y_Paddle_L_End : out integer range 0 to 479
-		o_X_Paddle_R_Start : out integer range 0 to (639 - g_PADDLE_WIDTH);
-		o_X_Paddle_R_End : out integer range 0 to 639;
-		o_Y_Paddle_R_Start : out integer range 0 to (479 - g_PADDLE_LENGTH);
-		o_Y_Paddle_R_End : out integer range 0 to 479
+		o_X_Ball_Start : out std_logic_vector(9 downto 0);
+		o_X_Ball_End : out std_logic_vector(9 downto 0);
+		o_Y_Ball_Start : out std_logic_vector(8 downto 0);
+		o_Y_Ball_End : out std_logic_vector(8 downto 0);
+		o_X_Paddle_L_Start : out std_logic_vector(9 downto 0);
+		o_X_Paddle_L_End : out std_logic_vector(9 downto 0);
+		o_Y_Paddle_L_Start : out std_logic_vector(8 downto 0);
+		o_Y_Paddle_L_End : out std_logic_vector(8 downto 0);
+		o_X_Paddle_R_Start : out std_logic_vector(9 downto 0);
+		o_X_Paddle_R_End : out std_logic_vector(9 downto 0);
+		o_Y_Paddle_R_Start : out std_logic_vector(8 downto 0);
+		o_Y_Paddle_R_End : out std_logic_vector(8 downto 0)
 	);
 	
 end pong_process;
@@ -43,25 +43,25 @@ architecture Behavioral of pong_process is
 	constant c_X_BALL_SPEED : std_logic_vector(2 downto 0) := "011";
 	constant c_Y_BALL_SPEED : std_logic_vector(2 downto 0) := "010";
 	
-	signal w_X_Ball_Pos : integer range 0 to (639 - g_BALL_SIZE);
-	signal w_Y_Ball_Pos : integer range 0 to (479 - g_BALL_SIZE);
+	signal w_X_Ball_Pos : std_logic_vector(9 downto 0);
+	signal w_Y_Ball_Pos : std_logic_vector(8 downto 0);
 	signal w_Rate_Cnt : integer range 0 to c_REFRESH_RATE_DIVIDER;
 	signal w_Clock_En : std_logic := '0';
 	
-	signal w_X_Ball_Start : integer range 0 to (639 - g_BALL_SIZE);
-	signal w_X_Ball_End : integer range 0 to 639;
-	signal w_Y_Ball_Start : integer range 0 to (479 - g_BALL_SIZE);
-	signal w_Y_Ball_End : integer range 0 to 479;
+	signal w_X_Ball_Start : std_logic_vector(9 downto 0);
+	signal w_X_Ball_End : std_logic_vector(9 downto 0);
+	signal w_Y_Ball_Start : std_logic_vector(8 downto 0);
+	signal w_Y_Ball_End : std_logic_vector(8 downto 0);
 	
-	signal w_X_Ball_Speed : integer range -5 to 5 := 3;
-	signal w_Y_Ball_Speed : integer range -5 to 5 := 2;
+	signal w_X_Ball_Speed : signed(3 downto 0) := "0011";
+	signal w_Y_Ball_Speed : signed(3 downto 0) := "0010";
 	
 begin
 	
 	w_X_Ball_Start <= w_X_Ball_Pos;
-	w_X_Ball_End <= w_X_Ball_Pos + g_BALL_SIZE;
+	w_X_Ball_End <= w_X_Ball_Pos + std_logic_vector(to_unsigned(g_BALL_SIZE, w_X_Ball_End'length));
 	w_Y_Ball_Start <= w_Y_Ball_Pos;
-	w_Y_Ball_End <= w_Y_Ball_Pos + g_BALL_SIZE;
+	w_Y_Ball_End <= w_Y_Ball_Pos + std_logic_vector(to_unsigned(g_BALL_SIZE, w_Y_Ball_End'length));
 	
 	inst_move_paddle_l : entity work.pong_move_paddle
 	generic map (
@@ -128,8 +128,8 @@ begin
 					w_X_Ball_Pos <= w_X_Ball_Pos + 1;
 					w_Y_Ball_Pos <= w_Y_Ball_Pos + 1;
 				else
-					w_X_Ball_Pos <= 30;
-					w_Y_Ball_Pos <= 30;
+					w_X_Ball_Pos <= std_logic_vector(to_unsigned(30, w_X_Ball_Pos'length));
+					w_Y_Ball_Pos <= std_logic_vector(to_unsigned(30, w_Y_Ball_Pos'length));
 				end if;
 			
 			end if;
