@@ -9,7 +9,7 @@ entity top_module is
 	);
 	port (
 		i_Clk : in std_logic;
-		i_Switch : in std_logic_vector(1 downto 0);
+		i_Switch : in std_logic_vector(4 downto 0);
 		i_UartRX : in STD_LOGIC;
 
 		o_LED : out STD_LOGIC;
@@ -80,8 +80,8 @@ architecture Behavioral of top_module is
 	
 	-- IO signals
 	signal r_LED_1 : STD_LOGIC := '0';
-	signal r_Switch : STD_LOGIC_VECTOR(1 downto 0) := "00";
-	signal w_Switch : STD_LOGIC_VECTOR(1 downto 0);
+	signal r_Switch : STD_LOGIC_VECTOR(4 downto 0) := "00000";
+	signal w_Switch : STD_LOGIC_VECTOR(4 downto 0);
 	
 	-- BUTTON COUNTER signal
 	signal r_SwitchBCHcnt : STD_LOGIC_VECTOR(11 downto 0) := "000000000000";
@@ -101,9 +101,17 @@ architecture Behavioral of top_module is
 	signal w_RXByte : STD_LOGIC_VECTOR(7 downto 0) := "00000000";
 	signal w_TXByte : STD_LOGIC_VECTOR(7 downto 0) := "00000000";
 	
-	signal r_SwitchBCHcntReceived : STD_LOGIC_VECTOR(11 downto 0) := "000000000000";
+	signal r_Switch_BCH_Cnt_Received : STD_LOGIC_VECTOR(11 downto 0) := "000000000000";
 	signal r_TXDataReady : STD_LOGIC := '0';
 
+	-- PONG SIGNALS
+	signal w_VGA_Pong_Red : std_logic_vector(2 downto 0);
+	signal w_VGA_Pong_Grn : std_logic_vector(2 downto 0);
+	signal w_VGA_Pong_Blu : std_logic_vector(1 downto 0);
+	signal w_Pixel_Pong_On : std_logic;
+	signal w_Score_A : std_logic_vector(3 downto 0);
+	signal w_Score_B : std_logic_vector(3 downto 0);
+	
 begin
 	----------------------------------------------
 	------ 100MHz CLOCK GENERATOR INSTANCE -------
@@ -117,20 +125,41 @@ begin
 	);
 
 	----------------------------------------------
-	------ DEBOUNCE TWO SWITCHES INSTANCES -------
+	------ DEBOUNCE FIVE SWITCHES INSTANCES -------
 	----------------------------------------------
-	DebounceInst1 : entity work.debounce_switch
+	inst_debounce_switch0 : entity work.debounce_switch
 	port map (
 		i_Clk    => w_Clkfx_Out,
 		i_Switch => i_Switch(0),
 		o_Switch => w_Switch(0)
 	);
 	
-	DebounceInst2 : entity work.debounce_switch
+	inst_debounce_switch1 : entity work.debounce_switch
 	port map (
 		i_Clk    => w_Clkfx_Out,
 		i_Switch => i_Switch(1),
 		o_Switch => w_Switch(1)
+	);
+	
+	inst_debounce_switch2 : entity work.debounce_switch
+	port map (
+		i_Clk    => w_Clkfx_Out,
+		i_Switch => i_Switch(2),
+		o_Switch => w_Switch(2)
+	);
+	
+	inst_debounce_switch3 : entity work.debounce_switch
+	port map (
+		i_Clk    => w_Clkfx_Out,
+		i_Switch => i_Switch(3),
+		o_Switch => w_Switch(3)
+	);
+	
+	inst_debounce_switch4 : entity work.debounce_switch
+	port map (
+		i_Clk    => w_Clkfx_Out,
+		i_Switch => i_Switch(4),
+		o_Switch => w_Switch(4)
 	);
 			
 	----------------------------------------------
@@ -201,13 +230,31 @@ begin
 		i_Clk_En => w_VGA_Clk_Enable,
 		i_X_Pixel => w_X_Pixel,
 		i_Y_Pixel => w_Y_Pixel,
-		i_Pattern_Number => r_SwitchBCHcntReceived(2 downto 0),
+		i_Pattern_Number => r_Switch_BCH_Cnt_Received(2 downto 0),
 		o_Red => w_VGA_Red,
 		o_Grn => w_VGA_Grn,
 		o_Blu => w_VGA_Blu,
 		o_Pixel_On => w_Pixel_On
 	);
 	
+	----------------------------------------------
+	------------------ PONG ----------------------
+	----------------------------------------------
+	inst_pong : entity work.top_pong
+	port map (
+		i_Clk => w_Clkfx_Out, -- 100MHz
+		i_Clk_En => w_VGA_Clk_Enable, -- 25MHz clock enable
+		i_X_Pixel => w_X_Pixel,
+		i_Y_Pixel => w_Y_Pixel,
+		i_Control => not(w_Switch), -- Switches are normally '1'
+		o_Red => w_VGA_Pong_Red,
+		o_Grn => w_VGA_Pong_Grn,
+		o_Blu => w_VGA_Pong_Blu,
+		o_Score_A => w_Score_A,
+		o_Score_B => w_Score_B,
+		o_Pixel_On => w_Pixel_Pong_On
+	);
+
 	----------------------------------------------
 	----- 100MHz clock to 25Mhz clock enable -----
 	----------------------------------------------
@@ -262,8 +309,8 @@ begin
 				r_TXDataReady <= '1';
 			end if;
 			
-			-- switch 2 is released
-			if r_Switch(1) = '1' and not(w_Switch(1)) = '0' then
+			-- switch 3 is released
+			if r_Switch(2) = '1' and not(w_Switch(2)) = '0' then
 				r_SwitchBCHcnt(11 downto 0) <= "000000000000";
 				
 				-- send the youngest 8 bits of counter via UART
@@ -280,7 +327,7 @@ begin
 			
 			-- set new data to display when it is received
 			if w_RXDV = '1' then
-				r_SwitchBCHcntReceived(7 downto 0) <= w_RXByte;
+				r_Switch_BCH_Cnt_Received(7 downto 0) <= w_RXByte;
 			end if;
 			
 		end if;
@@ -306,9 +353,9 @@ begin
 	
 	-- multiplex every digit
 	with r_CurrentSegment select
-		r_SegmentCurrentDigit <= r_SwitchBCHcntReceived(3 downto 0) when "001",
-										 r_SwitchBCHcntReceived(7 downto 4) when "010",
-										 r_SwitchBCHcntReceived(11 downto 8) when "100",
+		r_SegmentCurrentDigit <= r_Switch_BCH_Cnt_Received(3 downto 0) when "001",
+										 r_Switch_BCH_Cnt_Received(7 downto 4) when "010",
+										 r_Switch_BCH_Cnt_Received(11 downto 8) when "100",
 										 "0000" when others;
 	
 
@@ -318,9 +365,9 @@ begin
 	o_VGA_HSync <= w_VGA_HSync_Porch;
 	o_VGA_VSync <= w_VGA_VSync_Porch;
 	
-	o_VGA_Red <= w_VGA_Red when w_X_Pixel < 640 and w_Y_Pixel < 480 else "000";
-	o_VGA_Grn <= w_VGA_Grn when w_X_Pixel < 640 and w_Y_Pixel < 480 else "000";
-	o_VGA_Blu <= w_VGA_Blu when w_X_Pixel < 640 and w_Y_Pixel < 480 else "00";
+	o_VGA_Red <= w_VGA_Pong_Red when w_X_Pixel < 640 and w_Y_Pixel < 480 else "000";
+	o_VGA_Grn <= w_VGA_Pong_Grn when w_X_Pixel < 640 and w_Y_Pixel < 480 else "000";
+	o_VGA_Blu <= w_VGA_Pong_Blu when w_X_Pixel < 640 and w_Y_Pixel < 480 else "00";
 	
 	o_SegEn <= not(r_CurrentSegment);
 	o_LED <= r_LED_1;
