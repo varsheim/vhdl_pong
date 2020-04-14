@@ -41,14 +41,17 @@ architecture Behavioral of pong_process is
 	constant c_MOVE_PADDLE_Y_MAX_RATE : integer := 500000;
 	constant c_Y_PADDLE_L_START_POS : integer := 50;
 	constant c_Y_PADDLE_R_START_POS : integer := 200;
-	constant c_X_BALL_START_POS : integer := 639 - g_BALL_SIZE / 2;
-	constant c_Y_BALL_START_POS : integer := 479 - g_BALL_SIZE / 2;
+	constant c_X_BALL_START_POS : integer := 319 - g_BALL_SIZE / 2;
+	constant c_Y_BALL_START_POS : integer := 239 - g_BALL_SIZE / 2;
 	
 	type Ball_X_Dir_Type is (s_Idle, s_Left, s_Right);
 	signal sm_Ball_X_Dir : Ball_X_Dir_Type;
 	
 	type Ball_Y_Dir_Type is (s_Idle, s_Up, s_Down);
 	signal sm_Ball_Y_Dir : Ball_Y_Dir_Type;
+	
+	type Pong_Game_Status_Type is (s_Start_Wait, s_Play, S_End_Wait);
+	signal sm_Pong_Game_Status : Pong_Game_Status_Type;
 	
 	signal w_X_Ball_Pos : std_logic_vector(9 downto 0);
 	signal w_Y_Ball_Pos : std_logic_vector(8 downto 0);
@@ -60,6 +63,9 @@ architecture Behavioral of pong_process is
 	signal w_Move_Ball_X_Clk_En : std_logic := '0';
 	signal w_Move_Ball_Y_Clk_En : std_logic := '0';
 	signal w_Move_Paddle_Y_Clk_En : std_logic := '0';
+	
+	signal w_Score_A : std_logic_vector (3 downto 0) := "0000";
+	signal w_Score_B : std_logic_vector (3 downto 0) := "0000";
 	
 	signal w_X_Ball_Start : std_logic_vector(9 downto 0);
 	signal w_X_Ball_End : std_logic_vector(9 downto 0);
@@ -76,7 +82,11 @@ architecture Behavioral of pong_process is
 	signal w_Y_Paddle_R_Start : std_logic_vector(8 downto 0);
 	signal w_Y_Paddle_R_End : std_logic_vector(8 downto 0);
 	
-	signal Game_Active : std_logic := '1';
+	signal r_Play_Active : std_logic := '1';
+	signal r_Ball_Hit_R : std_logic := '0';
+	signal r_Ball_Hit_L : std_logic := '0';
+	signal r_Ball_Hit_R_Noticed : std_logic := '0';
+	signal r_Ball_Hit_L_Noticed : std_logic := '0';
 begin
 	
 	w_X_Ball_Start <= w_X_Ball_Pos;
@@ -161,8 +171,49 @@ begin
 	begin
 		if rising_edge(i_Clk) then
 			if w_Clock_En = '1' then
-			
-			
+				case sm_Pong_Game_Status is
+					when s_Start_Wait =>
+						r_Play_Active <= '0';
+						if i_Control(2) = '1' then
+							sm_Pong_Game_Status <= s_Play;
+						else
+							sm_Pong_Game_Status <= s_Start_Wait;
+						end if;
+					when s_Play =>
+						r_Play_Active <= '1';
+						-- jesli dostane sygnal ze pilka wpadla to przejdz do start_wait
+						if r_Ball_Hit_L /= r_Ball_Hit_L_Noticed then
+							r_Ball_Hit_L_Noticed <= not r_Ball_Hit_L_Noticed;
+							if w_Score_B = "1001" then
+								sm_Pong_Game_Status <= s_End_Wait;
+							else
+								w_Score_B <= w_Score_B + 1;
+								sm_Pong_Game_Status <= s_Start_Wait;
+							end if;
+							
+						elsif r_Ball_Hit_R /= r_Ball_Hit_R_Noticed then
+							r_Ball_Hit_R_Noticed <= not r_Ball_Hit_R_Noticed;
+							if w_Score_A = "1001" then
+								sm_Pong_Game_Status <= s_End_Wait;
+							else
+								w_Score_A <= w_Score_A + 1;
+								sm_Pong_Game_Status <= s_Start_Wait;
+							end if;
+							
+						else
+							sm_Pong_Game_Status <= s_Play;
+						end if;
+						
+					when s_End_Wait =>
+						r_Play_Active <= '0';
+						if i_Control(2) = '1' then
+							sm_Pong_Game_Status <= s_Play;
+							w_Score_A <= "0000";
+							w_Score_B <= "0000";
+						else
+							sm_Pong_Game_Status <= s_End_Wait;
+						end if;
+					end case;
 			end if;
 		end if;
 	end process p_Game;
@@ -172,7 +223,7 @@ begin
 	begin
 		if rising_edge(i_Clk) then
 			if w_Move_Ball_X_Clk_En = '1' then
-				if Game_Active = '1' then
+				if r_Play_Active = '1' then
 					case sm_Ball_X_Dir is
 						when s_Idle =>
 							-- kulka stoi w miejscu
@@ -184,6 +235,7 @@ begin
 							if w_X_Ball_Start = w_X_Paddle_L_End + 1 and w_Y_Ball_End > w_Y_Paddle_L_Start and w_Y_Ball_Start < w_Y_Paddle_L_End then
 								sm_Ball_X_Dir <= s_Right;
 							elsif w_X_Ball_Start = 0 then
+								r_Ball_Hit_L <= not r_Ball_Hit_L;
 								sm_Ball_X_Dir <= s_Right;
 							else
 								w_X_Ball_Pos <= w_X_Ball_Pos - 1;
@@ -191,10 +243,12 @@ begin
 							end if;
 							
 						when s_Right =>
-							-- ruch w prawo
+							-- right movement
 							if w_X_Ball_End = w_X_Paddle_R_Start - 1 and w_Y_Ball_End > w_Y_Paddle_R_Start and w_Y_Ball_Start < w_Y_Paddle_R_End then
 								sm_Ball_X_Dir <= s_Left;
 							elsif w_X_Ball_End = 639 then
+								-- Ball hit the right side
+								r_Ball_Hit_R <= not r_Ball_Hit_R;
 								sm_Ball_X_Dir <= s_Left;
 							else
 								w_X_Ball_Pos <= w_X_Ball_Pos + 1;
@@ -212,7 +266,7 @@ begin
 	begin
 		if rising_edge(i_Clk) then
 			if w_Move_Ball_Y_Clk_En = '1' then
-				if Game_Active = '1' then
+				if r_Play_Active = '1' then
 					case sm_Ball_Y_Dir is
 						when s_Idle =>
 							sm_Ball_Y_Dir <= s_Up;
@@ -241,8 +295,8 @@ begin
 		end if;
 	end process p_Move_Ball_Y;
 	
-	o_Score_A <= std_logic_vector(to_unsigned(0, o_Score_A'length));
-	o_Score_B <= std_logic_vector(to_unsigned(0, o_Score_B'length));
+	o_Score_A <= w_Score_A;
+	o_Score_B <= w_Score_B;
 
 	
 	o_X_Ball_Start <= w_X_Ball_Start;

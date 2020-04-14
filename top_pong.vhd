@@ -20,7 +20,7 @@ end top_pong;
 
 architecture Behavioral of top_pong is
 	-- PONG CONSTANTS
-	constant c_PADDLE_WIDTH : integer := 20;
+	constant c_PADDLE_WIDTH : integer := 10;
 	constant c_PADDLE_LENGTH : integer := 100;
 	constant c_BALL_SIZE : integer := 8;
 	constant c_MAX_SCORE : integer := 9;
