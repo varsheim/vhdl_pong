@@ -47,13 +47,13 @@ architecture Behavioral of pong_process is
 	constant c_Y_BALL_START_POS : integer := 239 - g_BALL_SIZE / 2;
 	
 	type Ball_X_Dir_Type is (s_Idle, s_Left, s_Right);
-	signal sm_Ball_X_Dir : Ball_X_Dir_Type;
+	signal sm_Ball_X_Dir : Ball_X_Dir_Type := s_Idle;
 	
 	type Ball_Y_Dir_Type is (s_Idle, s_Up, s_Down);
-	signal sm_Ball_Y_Dir : Ball_Y_Dir_Type;
+	signal sm_Ball_Y_Dir : Ball_Y_Dir_Type := s_Idle;
 	
 	type Pong_Game_Status_Type is (s_Start_Wait, s_Play, S_End_Wait);
-	signal sm_Pong_Game_Status : Pong_Game_Status_Type;
+	signal sm_Pong_Game_Status : Pong_Game_Status_Type := s_Start_Wait;
 	
 	signal w_X_Ball_Pos : std_logic_vector(9 downto 0);
 	signal w_Y_Ball_Pos : std_logic_vector(8 downto 0);

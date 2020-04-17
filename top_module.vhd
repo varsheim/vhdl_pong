@@ -1,7 +1,7 @@
 library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
-use IEEE.std_logic_unsigned.all;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
+use ieee.std_logic_unsigned.all;
 
 entity top_module is
 	generic (
@@ -10,10 +10,10 @@ entity top_module is
 	port (
 		i_Clk : in std_logic;
 		i_Switch : in std_logic_vector(4 downto 0);
-		i_UartRX : in STD_LOGIC;
+--		i_UartRX : in STD_LOGIC;
 
 		o_LED : out STD_LOGIC;
-		o_UartTX : out STD_LOGIC;
+--		o_UartTX : out STD_LOGIC;
 		o_SegEn : out STD_LOGIC_VECTOR(2 downto 0);
 		o_SegLED : out STD_LOGIC_VECTOR(7 downto 0);
 		
@@ -60,18 +60,11 @@ architecture Behavioral of top_module is
 	
 	-- Clock signals
 	signal w_Clkfx_Out : std_logic;
-	signal w_Clkin_Ibufg_Out : std_logic;
-	signal w_Clk0_Out : std_logic;
 	signal w_VGA_Clk_Enable : std_logic;
 	signal w_Clk_Div : std_logic_vector(1 downto 0) := "00";
 	signal w_Reset : std_logic := '0';
 	
 	-- VGA signals
-	signal w_VGA_HSync : std_logic;
-	signal w_VGA_VSync : std_logic;
-	signal w_VGA_Red : std_logic_vector(2 downto 0);
-	signal w_VGA_Grn : std_logic_vector(2 downto 0);
-	signal w_VGA_Blu : std_logic_vector(1 downto 0);
 	signal w_VGA_VSync_Porch : std_logic;
 	signal w_VGA_HSync_Porch : std_logic;
 	signal w_X_Pixel : std_logic_vector(9 downto 0);
@@ -80,11 +73,7 @@ architecture Behavioral of top_module is
 	
 	-- IO signals
 	signal r_LED_1 : STD_LOGIC := '0';
-	signal r_Switch : STD_LOGIC_VECTOR(4 downto 0) := "00000";
 	signal w_Switch : STD_LOGIC_VECTOR(4 downto 0);
-	
-	-- BUTTON COUNTER signal
-	signal r_SwitchBCHcnt : STD_LOGIC_VECTOR(11 downto 0) := "000000000000";
 	
 	-- SIGNALS 7 segments display
 	signal r_CurrentSegment : STD_LOGIC_VECTOR(2 downto 0) := "001";
@@ -92,17 +81,15 @@ architecture Behavioral of top_module is
 	signal r_SegmentCurrentDigit : STD_LOGIC_VECTOR(3 downto 0) := "0000";
 	
 	-- UART COMMUNICATION
-	signal w_RXDV : STD_LOGIC := '0';
-	signal w_TXDV : STD_LOGIC;-- := '0';
+--	signal w_RXDV : STD_LOGIC := '0';
+--	signal w_TXDV : STD_LOGIC;-- := '0';
+--
+--	signal w_TXActive : STD_LOGIC := '0';
+--	signal w_TXSerial : STD_LOGIC := '1';
 	
-	signal w_TXActive : STD_LOGIC := '0';
-	signal w_TXSerial : STD_LOGIC := '1';
-	
-	signal w_RXByte : STD_LOGIC_VECTOR(7 downto 0) := "00000000";
-	signal w_TXByte : STD_LOGIC_VECTOR(7 downto 0) := "00000000";
-	
-	signal r_Switch_BCH_Cnt_Received : STD_LOGIC_VECTOR(11 downto 0) := "000000000000";
-	signal r_TXDataReady : STD_LOGIC := '0';
+--	signal w_RXByte : STD_LOGIC_VECTOR(7 downto 0) := "00000000";
+--	signal w_TXByte : STD_LOGIC_VECTOR(7 downto 0) := "00000000";
+--	signal r_TXDataReady : STD_LOGIC := '0';
 
 	-- PONG SIGNALS
 	signal w_VGA_Pong_Red : std_logic_vector(2 downto 0);
@@ -116,12 +103,12 @@ begin
 	----------------------------------------------
 	------ 100MHz CLOCK GENERATOR INSTANCE -------
 	----------------------------------------------
-	Inst_clock_inst: clock_inst PORT MAP(
+	inst_clock_inst: clock_inst PORT MAP(
 		CLKIN_IN => i_Clk,
 		RST_IN => w_Reset,
 		CLKFX_OUT => w_Clkfx_Out,
-		CLKIN_IBUFG_OUT => w_Clkin_Ibufg_Out,
-		CLK0_OUT => w_Clk0_Out
+		CLKIN_IBUFG_OUT => open,
+		CLK0_OUT => open
 	);
 
 	----------------------------------------------
@@ -165,31 +152,34 @@ begin
 	----------------------------------------------
 	---------- UART RX & TX INSTANCES ------------
 	----------------------------------------------
-	UARTRX : entity work.uart_rx
-	generic map (
-		g_CLKS_PER_BIT => g_CLKS_PER_UART_BIT)
-	port map (
-		i_Clk      => w_Clkfx_Out,
-		i_RXSerial => i_UartRX,
-		o_RXDV     => w_RXDV,
-		o_RXByte   => w_RXByte
-	);
+	-- UART RX
+--	UARTRX : entity work.uart_rx
+--	generic map (
+--		g_CLKS_PER_BIT => g_CLKS_PER_UART_BIT)
+--	port map (
+--		i_Clk      => w_Clkfx_Out,
+--		i_RXSerial => i_UartRX,
+--		o_RXDV     => w_RXDV,
+--		o_RXByte   => w_RXByte
+--	);
 
-	-- Instantiate UART TX
-	UARTTX : entity work.uart_tx
-	generic map (
-		g_CLKS_PER_BIT => g_CLKS_PER_UART_BIT)
-	port map (
-		i_Clk      => w_Clkfx_Out,
-		i_TXDV     => w_TXDV,
-		i_TXByte   => w_TXByte,
-		o_TXSerial => w_TXSerial,
-		o_TXActive => w_TXActive
-	);
-			
-	o_UartTX <= w_TXSerial when w_TXActive = '1' else '1';
+	-- UART TX
+--	UARTTX : entity work.uart_tx
+--	generic map (
+--		g_CLKS_PER_BIT => g_CLKS_PER_UART_BIT)
+--	port map (
+--		i_Clk      => w_Clkfx_Out,
+--		i_TXDV     => w_TXDV,
+--		i_TXByte   => w_TXByte,
+--		o_TXSerial => w_TXSerial,
+--		o_TXActive => w_TXActive
+--	);
+--			
+--	o_UartTX <= w_TXSerial when w_TXActive = '1' else '1';
 	
-	-- Instantiate BCH (Binary Coded Hexadecimal) to 7SEG
+	----------------------------------------------
+	--------- HEX TO 7 SEGMENT DISPLAY -----------
+	----------------------------------------------
 	BCHToSegmentInst : entity work.bch_to_segment
 	port map (
 		i_Digit => r_SegmentCurrentDigit,
@@ -213,28 +203,12 @@ begin
 	port map (
 		i_Clk => w_Clkfx_Out,
 		i_Clk_En => w_VGA_Clk_Enable,
-		o_HSync => w_VGA_HSync,
-		o_VSync => w_VGA_VSync,
+		o_HSync => open,
+		o_VSync => open,
 		o_HSync_Porch => w_VGA_HSync_Porch,
 		o_VSync_Porch => w_VGA_VSync_Porch,
 		o_Col_Count => w_X_Pixel,
 		o_Row_Count => w_Y_Pixel
-	);
-	
-	----------------------------------------------
-	------- VGA PATTERN GENERATOR INSTANCE -------
-	----------------------------------------------
-	inst_vga_pattern_gen : entity work.vga_pattern_generator 
-	port map (
-		i_Clk => w_Clkfx_Out,
-		i_Clk_En => w_VGA_Clk_Enable,
-		i_X_Pixel => w_X_Pixel,
-		i_Y_Pixel => w_Y_Pixel,
-		i_Pattern_Number => r_Switch_BCH_Cnt_Received(2 downto 0),
-		o_Red => w_VGA_Red,
-		o_Grn => w_VGA_Grn,
-		o_Blu => w_VGA_Blu,
-		o_Pixel_On => w_Pixel_On
 	);
 	
 	----------------------------------------------
@@ -274,64 +248,17 @@ begin
 	end process p_VGA_Clock;
 
 	----------------------------------------------
-	--- HANDLE BUTTON COUNTER AND TRANSMISSION ---
+	---------- HANDLE UART TRANSMISSION ----------
 	----------------------------------------------
-	p_Register : process (w_Clkfx_Out) is
-	begin
-		if rising_edge(w_Clkfx_Out) then
-			r_Switch <= not(w_Switch);
-			
-			-- switch 1 is released
-			-- increment HEX counter
-			-- send it via UART
-			if r_Switch(0) = '1' and not(w_Switch(0)) = '0' then
-				-- zmiana stanu LED
-				r_LED_1 <= not r_LED_1;
-				
-				-- BCH increment
-				if r_SwitchBCHcnt(3 downto 0) < 15 then
-					r_SwitchBCHcnt(3 downto 0) <= r_SwitchBCHcnt(3 downto 0) + 1;
-				else
-					r_SwitchBCHcnt(3 downto 0) <= "0000";
-					if r_SwitchBCHcnt(7 downto 4) < 15 then
-						r_SwitchBCHcnt(7 downto 4) <= r_SwitchBCHcnt(7 downto 4) + 1;
-					else
-						r_SwitchBCHcnt(7 downto 4) <= "0000";
-						if r_SwitchBCHcnt(11 downto 8) < 0 then
-							r_SwitchBCHcnt(11 downto 8) <= r_SwitchBCHcnt(11 downto 8) + 1;
-						else
-							r_SwitchBCHcnt(11 downto 8) <= "0000";
-						end if;
-					end if;
-				end if;
-				
-				-- send the youngest 8 bits of counter via UART
-				r_TXDataReady <= '1';
-			end if;
-			
-			-- switch 3 is released
-			if r_Switch(2) = '1' and not(w_Switch(2)) = '0' then
-				r_SwitchBCHcnt(11 downto 0) <= "000000000000";
-				
-				-- send the youngest 8 bits of counter via UART
-				r_TXDataReady <= '1';
-			end if;
-			
-			if r_TXDataReady = '1' then
-				w_TXByte <= r_SwitchBCHcnt(7 downto 0);
-				w_TXDV <= '1';
-				r_TXDataReady <= '0';
-			else
-				w_TXDV <= '0';
-			end if;
-			
-			-- set new data to display when it is received
-			if w_RXDV = '1' then
-				r_Switch_BCH_Cnt_Received(7 downto 0) <= w_RXByte;
-			end if;
-			
-		end if;
-	end process p_Register;
+--	p_Register : process (w_Clkfx_Out) is
+--	begin
+--		if rising_edge(w_Clkfx_Out) then
+--			-- Receive example
+--			if w_RXDV = '1' then
+--				r_Score(7 downto 0) <= w_RXByte;
+--			end if;
+--		end if;
+--	end process p_Register;
 	
 	
 	----------------------------------------------
@@ -353,9 +280,8 @@ begin
 	
 	-- multiplex every digit
 	with r_CurrentSegment select
-		r_SegmentCurrentDigit <= r_Switch_BCH_Cnt_Received(3 downto 0) when "001",
-										 r_Switch_BCH_Cnt_Received(7 downto 4) when "010",
-										 r_Switch_BCH_Cnt_Received(11 downto 8) when "100",
+		r_SegmentCurrentDigit <= w_Score_B when "001",
+										 w_Score_A when "100",
 										 "0000" when others;
 	
 
@@ -371,6 +297,7 @@ begin
 	
 	o_SegEn <= not(r_CurrentSegment);
 	o_LED <= r_LED_1;
+	
 	-- simulation purposes
 	--o_Clkfx_Out <= w_Clkfx_Out;
 	--o_VGA_VSync_wo_Porch <= w_VGA_VSync;
