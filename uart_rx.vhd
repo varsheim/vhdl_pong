@@ -13,7 +13,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity uart_rx is
 	generic (
-		g_CLKS_PER_BIT : integer := 104     -- Needs to be set correctly
+		g_CLKS_PER_BIT : integer     -- Needs to be set correctly
 	);
 	port (
 		i_Clk      : in  STD_LOGIC;

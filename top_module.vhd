@@ -353,9 +353,9 @@ begin
 	
 	-- multiplex every digit
 	with r_CurrentSegment select
-		r_SegmentCurrentDigit <= w_Score_B when "001",
+		r_SegmentCurrentDigit <= r_Switch_BCH_Cnt_Received(3 downto 0) when "001",
 										 r_Switch_BCH_Cnt_Received(7 downto 4) when "010",
-										 w_Score_A when "100",
+										 r_Switch_BCH_Cnt_Received(11 downto 8) when "100",
 										 "0000" when others;
 	
 

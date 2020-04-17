@@ -22,6 +22,7 @@ entity pong_process is
 		o_X_Ball_End : out std_logic_vector(9 downto 0);
 		o_Y_Ball_Start : out std_logic_vector(8 downto 0);
 		o_Y_Ball_End : out std_logic_vector(8 downto 0);
+		o_Ball_Flashing : out std_logic;
 		o_X_Paddle_L_Start : out std_logic_vector(9 downto 0);
 		o_X_Paddle_L_End : out std_logic_vector(9 downto 0);
 		o_Y_Paddle_L_Start : out std_logic_vector(8 downto 0);
@@ -36,6 +37,7 @@ end pong_process;
 
 architecture Behavioral of pong_process is
 	constant c_REFRESH_RATE_DIVIDER : integer := 1666666; -- 100MHz / 60Hz - adjust for slower/faster animation
+	constant c_BALL_FLASHING_RATE_DIVIDER : integer := 49999999; -- half a second for a 100MHz clock
 	constant c_MOVE_BALL_X_MAX_RATE : integer := 300000;
 	constant c_MOVE_BALL_Y_MAX_RATE : integer := 1000000;
 	constant c_MOVE_PADDLE_Y_MAX_RATE : integer := 500000;
@@ -57,12 +59,15 @@ architecture Behavioral of pong_process is
 	signal w_Y_Ball_Pos : std_logic_vector(8 downto 0);
 	signal w_Rate_Cnt : integer range 0 to c_REFRESH_RATE_DIVIDER;
 	signal w_Move_Ball_X_Clk_Cnt : integer range 0 to c_MOVE_BALL_X_MAX_RATE;
-	signal w_Move_Ball_Y_Clk_Cnt  : integer range 0 to c_MOVE_BALL_Y_MAX_RATE;
-	signal w_Move_Paddle_Y_Clk_Cnt  : integer range 0 to c_MOVE_PADDLE_Y_MAX_RATE;
+	signal w_Move_Ball_Y_Clk_Cnt : integer range 0 to c_MOVE_BALL_Y_MAX_RATE;
+	signal w_Move_Paddle_Y_Clk_Cnt : integer range 0 to c_MOVE_PADDLE_Y_MAX_RATE;
+	signal r_Ball_Flashing_Cnt : integer range 0 to c_BALL_FLASHING_RATE_DIVIDER;
 	signal w_Clock_En : std_logic := '0';
 	signal w_Move_Ball_X_Clk_En : std_logic := '0';
 	signal w_Move_Ball_Y_Clk_En : std_logic := '0';
 	signal w_Move_Paddle_Y_Clk_En : std_logic := '0';
+	signal r_Ball_Flashing_On : std_logic := '0';
+	signal r_Ball_Flashing : std_logic := '0';
 	
 	signal w_Score_A : std_logic_vector (3 downto 0) := "0000";
 	signal w_Score_B : std_logic_vector (3 downto 0) := "0000";
@@ -87,6 +92,9 @@ architecture Behavioral of pong_process is
 	signal r_Ball_Hit_L : std_logic := '0';
 	signal r_Ball_Hit_R_Noticed : std_logic := '0';
 	signal r_Ball_Hit_L_Noticed : std_logic := '0';
+	
+
+	
 begin
 	
 	w_X_Ball_Start <= w_X_Ball_Pos;
@@ -132,6 +140,7 @@ begin
 	
 	p_Clock_Divider : process (i_Clk) is
 	begin
+	-- 100MHz clock in
 		if rising_edge(i_Clk) then
 			if w_Rate_Cnt = c_REFRESH_RATE_DIVIDER then
 				w_Rate_Cnt <= 0;
@@ -164,6 +173,14 @@ begin
 				w_Move_Paddle_Y_Clk_Cnt <= w_Move_Paddle_Y_Clk_Cnt + 1;
 				w_Move_Paddle_Y_Clk_En <= '0';
 			end if;
+			
+			-- Ball flashing 50 %
+			if r_Ball_Flashing_Cnt = c_BALL_FLASHING_RATE_DIVIDER then
+				r_Ball_Flashing_Cnt <= 0;
+				r_Ball_Flashing <= not r_Ball_Flashing;
+			else
+				r_Ball_Flashing_Cnt <= r_Ball_Flashing_Cnt + 1;
+			end if;
 		end if;
 	end process p_Clock_Divider;
 	
@@ -173,6 +190,7 @@ begin
 			if w_Clock_En = '1' then
 				case sm_Pong_Game_Status is
 					when s_Start_Wait =>
+						r_Ball_Flashing_On <= '1';
 						r_Play_Active <= '0';
 						if i_Control(2) = '1' then
 							sm_Pong_Game_Status <= s_Play;
@@ -180,6 +198,7 @@ begin
 							sm_Pong_Game_Status <= s_Start_Wait;
 						end if;
 					when s_Play =>
+						r_Ball_Flashing_On <= '0';
 						r_Play_Active <= '1';
 						-- jesli dostane sygnal ze pilka wpadla to przejdz do start_wait
 						if r_Ball_Hit_L /= r_Ball_Hit_L_Noticed then
@@ -205,11 +224,12 @@ begin
 						end if;
 						
 					when s_End_Wait =>
+						r_Ball_Flashing_On <= '1';
 						r_Play_Active <= '0';
+						w_Score_A <= "0000";
+						w_Score_B <= "0000";
 						if i_Control(2) = '1' then
 							sm_Pong_Game_Status <= s_Play;
-							w_Score_A <= "0000";
-							w_Score_B <= "0000";
 						else
 							sm_Pong_Game_Status <= s_End_Wait;
 						end if;
@@ -297,7 +317,6 @@ begin
 	
 	o_Score_A <= w_Score_A;
 	o_Score_B <= w_Score_B;
-
 	
 	o_X_Ball_Start <= w_X_Ball_Start;
 	o_X_Ball_End <= w_X_Ball_End;
@@ -313,5 +332,7 @@ begin
 	o_X_Paddle_R_End <= w_X_Paddle_R_End;
 	o_Y_Paddle_R_Start <= w_Y_Paddle_R_Start;
 	o_Y_Paddle_R_End <= w_Y_Paddle_R_End;
+	
+	o_Ball_Flashing <= r_Ball_Flashing when r_Ball_Flashing_On = '1' else '0';
 	
 end Behavioral;

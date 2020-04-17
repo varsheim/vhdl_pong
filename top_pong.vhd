@@ -45,6 +45,8 @@ architecture Behavioral of top_pong is
 	signal w_Y_Paddle_R_Start : std_logic_vector(8 downto 0);
 	signal w_Y_Paddle_R_End : std_logic_vector(8 downto 0);
 	
+	signal w_Ball_Flashing : std_logic := '0';
+	
 begin
 	----------------------------------------------
 	---------------- PROCESS ---------------------
@@ -67,6 +69,7 @@ begin
 		o_X_Ball_End => w_X_Ball_End,
 		o_Y_Ball_Start => w_Y_Ball_Start,
 		o_Y_Ball_End => w_Y_Ball_End,
+		o_Ball_Flashing => w_Ball_Flashing,
 		o_X_Paddle_L_Start => w_X_Paddle_L_Start,
 		o_X_Paddle_L_End => w_X_Paddle_L_End,
 		o_Y_Paddle_L_Start => w_Y_Paddle_L_Start,
@@ -141,7 +144,7 @@ begin
 			o_Red <= w_Paddle_R_Red;
 			o_Grn <= w_Paddle_R_Grn;
 			o_Blu <= w_Paddle_R_Blu;
-		elsif w_Ball_Pixel_On = '1' then
+		elsif w_Ball_Pixel_On = '1' and w_Ball_Flashing = '1' then
 			o_Red <= w_Ball_Red;
 			o_Grn <= w_Ball_Grn;
 			o_Blu <= w_Ball_Blu;
