@@ -36,15 +36,35 @@ entity pong_process is
 end pong_process;
 
 architecture Behavioral of pong_process is
-	constant c_REFRESH_RATE_DIVIDER : integer := 1666666; -- 100MHz / 60Hz - adjust for slower/faster animation
+	constant c_REFRESH_RATE_DIVIDER : integer := 1000000; -- adjust for slowe/faster main process SM
 	constant c_BALL_FLASHING_RATE_DIVIDER : integer := 49999999; -- half a second for a 100MHz clock
-	constant c_MOVE_BALL_X_MAX_RATE : integer := 300000;
-	constant c_MOVE_BALL_Y_MAX_RATE : integer := 1000000;
-	constant c_MOVE_PADDLE_Y_MAX_RATE : integer := 500000;
+	constant c_MOVE_BALL_X_MAX_RATE : integer := 2100000;
+	constant c_MOVE_BALL_Y_MAX_RATE : integer := 2100000;
+	constant c_MOVE_PADDLE_Y_MAX_RATE : integer := 250000;
 	constant c_Y_PADDLE_L_START_POS : integer := 50;
 	constant c_Y_PADDLE_R_START_POS : integer := 200;
-	constant c_X_BALL_START_POS : integer := 319 - g_BALL_SIZE / 2;
+	constant c_X_BALL_START_POS : integer := 319 - g_BALL_SIZE / 2; -- centre of the screen
 	constant c_Y_BALL_START_POS : integer := 239 - g_BALL_SIZE / 2;
+	constant c_PADDLE_LENGTH_HALF : integer := g_PADDLE_LENGTH / 2;
+	constant c_PADDLE_LENGTH_QUARTER : integer := g_PADDLE_LENGTH / 4;
+	constant c_PADDLE_LENGTH_EIGTH : integer := g_PADDLE_LENGTH / 8;
+	constant c_BALL_SIZE_HALF : integer := g_BALL_SIZE / 2;
+	
+	type Rom_Ball_Velocity_Rate is array(4 downto 0) of integer;
+	constant c_MOVE_BALL_X_RATES : Rom_Ball_Velocity_Rate := (
+	-- from slowest
+	2100000,
+	1000000,
+	400000,
+	340000,
+	300000);
+	constant c_MOVE_BALL_Y_RATES : Rom_Ball_Velocity_Rate := (
+	-- from fastest, with constant complete xy velocity
+	290076,
+	300000,
+	413057,
+	652955,
+	1000000);
 	
 	type Ball_X_Dir_Type is (s_Idle, s_Left, s_Right);
 	signal sm_Ball_X_Dir : Ball_X_Dir_Type := s_Idle;
@@ -58,6 +78,10 @@ architecture Behavioral of pong_process is
 	signal w_X_Ball_Pos : std_logic_vector(9 downto 0);
 	signal w_Y_Ball_Pos : std_logic_vector(8 downto 0);
 	signal w_Rate_Cnt : integer range 0 to c_REFRESH_RATE_DIVIDER;
+	
+	signal r_Move_Ball_X_Rate : integer range 0 to c_MOVE_BALL_X_MAX_RATE := c_MOVE_BALL_X_MAX_RATE;
+	signal r_Move_Ball_Y_Rate : integer range 0 to c_MOVE_BALL_Y_MAX_RATE := c_MOVE_BALL_Y_MAX_RATE;
+	signal r_Move_Ball_XY_Rom_Num : integer range 0 to 4;
 	signal w_Move_Ball_X_Clk_Cnt : integer range 0 to c_MOVE_BALL_X_MAX_RATE;
 	signal w_Move_Ball_Y_Clk_Cnt : integer range 0 to c_MOVE_BALL_Y_MAX_RATE;
 	signal w_Move_Paddle_Y_Clk_Cnt : integer range 0 to c_MOVE_PADDLE_Y_MAX_RATE;
@@ -81,7 +105,7 @@ architecture Behavioral of pong_process is
 	signal w_X_Paddle_L_End : std_logic_vector(9 downto 0);
 	signal w_Y_Paddle_L_Start : std_logic_vector(8 downto 0);
 	signal w_Y_Paddle_L_End : std_logic_vector(8 downto 0);
-	
+
 	signal w_X_Paddle_R_Start : std_logic_vector(9 downto 0);
 	signal w_X_Paddle_R_End : std_logic_vector(9 downto 0);
 	signal w_Y_Paddle_R_Start : std_logic_vector(8 downto 0);
@@ -90,9 +114,11 @@ architecture Behavioral of pong_process is
 	signal r_Play_Active : std_logic := '1';
 	signal r_Ball_Hit_R : std_logic := '0';
 	signal r_Ball_Hit_L : std_logic := '0';
-	signal r_Ball_Hit_R_Noticed : std_logic := '0';
-	signal r_Ball_Hit_L_Noticed : std_logic := '0';
-	
+	signal r_Ball_Hit_R_Ack : std_logic := '0';
+	signal r_Ball_Hit_L_Ack : std_logic := '0';
+	signal r_Ball_Hit_Paddle_Low : std_logic := '0';
+	signal r_Ball_Hit_Paddle : std_logic := '0';
+	signal r_Ball_Hit_Paddle_Ack : std_logic := '0';	
 
 	
 begin
@@ -150,7 +176,7 @@ begin
 				w_Clock_En <= '0';
 			end if;
 			
-			if w_Move_Ball_X_Clk_Cnt = c_MOVE_BALL_X_MAX_RATE then
+			if w_Move_Ball_X_Clk_Cnt >= r_Move_Ball_X_Rate then
 				w_Move_Ball_X_Clk_Cnt <= 0;
 				w_Move_Ball_X_Clk_En <= '1';
 			else
@@ -158,7 +184,7 @@ begin
 				w_Move_Ball_X_Clk_En <= '0';
 			end if;
 			
-			if w_Move_Ball_Y_Clk_Cnt = c_MOVE_BALL_Y_MAX_RATE then
+			if w_Move_Ball_Y_Clk_Cnt >= r_Move_Ball_Y_Rate then
 				w_Move_Ball_Y_Clk_Cnt <= 0;
 				w_Move_Ball_Y_Clk_En <= '1';
 			else
@@ -166,7 +192,7 @@ begin
 				w_Move_Ball_Y_Clk_En <= '0';
 			end if;
 			
-			if w_Move_Paddle_Y_Clk_Cnt = c_MOVE_PADDLE_Y_MAX_RATE then
+			if w_Move_Paddle_Y_Clk_Cnt >= c_MOVE_PADDLE_Y_MAX_RATE then
 				w_Move_Paddle_Y_Clk_Cnt <= 0;
 				w_Move_Paddle_Y_Clk_En <= '1';
 			else
@@ -175,7 +201,7 @@ begin
 			end if;
 			
 			-- Ball flashing 50 %
-			if r_Ball_Flashing_Cnt = c_BALL_FLASHING_RATE_DIVIDER then
+			if r_Ball_Flashing_Cnt >= c_BALL_FLASHING_RATE_DIVIDER then
 				r_Ball_Flashing_Cnt <= 0;
 				r_Ball_Flashing <= not r_Ball_Flashing;
 			else
@@ -201,8 +227,8 @@ begin
 						r_Ball_Flashing_On <= '0';
 						r_Play_Active <= '1';
 						-- jesli dostane sygnal ze pilka wpadla to przejdz do start_wait
-						if r_Ball_Hit_L /= r_Ball_Hit_L_Noticed then
-							r_Ball_Hit_L_Noticed <= not r_Ball_Hit_L_Noticed;
+						if r_Ball_Hit_L /= r_Ball_Hit_L_Ack then
+							r_Ball_Hit_L_Ack <= not r_Ball_Hit_L_Ack;
 							if w_Score_B = "1001" then
 								sm_Pong_Game_Status <= s_End_Wait;
 							else
@@ -210,8 +236,8 @@ begin
 								sm_Pong_Game_Status <= s_Start_Wait;
 							end if;
 							
-						elsif r_Ball_Hit_R /= r_Ball_Hit_R_Noticed then
-							r_Ball_Hit_R_Noticed <= not r_Ball_Hit_R_Noticed;
+						elsif r_Ball_Hit_R /= r_Ball_Hit_R_Ack then
+							r_Ball_Hit_R_Ack <= not r_Ball_Hit_R_Ack;
 							if w_Score_A = "1001" then
 								sm_Pong_Game_Status <= s_End_Wait;
 							else
@@ -246,14 +272,45 @@ begin
 				if r_Play_Active = '1' then
 					case sm_Ball_X_Dir is
 						when s_Idle =>
-							-- kulka stoi w miejscu
-							-- jak trafi w paletke to zmiana kierunku
-							-- jak trafi w brzeg ekranu to wchodzi w s_Idle i zglasza odpowiedni punkt (rejestr)
 							sm_Ball_X_Dir <= s_Right;
+							
+							-- assign default xy velocities
 						when s_Left =>
 							-- ruch w lewo
 							if w_X_Ball_Start = w_X_Paddle_L_End + 1 and w_Y_Ball_End > w_Y_Paddle_L_Start and w_Y_Ball_Start < w_Y_Paddle_L_End then
 								sm_Ball_X_Dir <= s_Right;
+								r_Ball_Hit_Paddle <= not r_Ball_Hit_Paddle;
+								if w_Y_Ball_End < (w_Y_Paddle_L_Start + c_PADDLE_LENGTH_EIGTH) then
+									r_Ball_Hit_Paddle_Low <= '0';
+									r_Move_Ball_XY_Rom_Num <= 4;
+								elsif w_Y_Ball_End < (w_Y_Paddle_L_Start + c_PADDLE_LENGTH_QUARTER) then
+									r_Ball_Hit_Paddle_Low <= '0';
+									r_Move_Ball_XY_Rom_Num <= 3;
+								elsif w_Y_Ball_End < (w_Y_Paddle_L_Start + c_PADDLE_LENGTH_HALF - c_PADDLE_LENGTH_EIGTH) then
+									r_Ball_Hit_Paddle_Low <= '0';
+									r_Move_Ball_XY_Rom_Num <= 2;
+								elsif w_Y_Ball_End < (w_Y_Paddle_L_Start + c_PADDLE_LENGTH_HALF) then
+									r_Ball_Hit_Paddle_Low <= '0';
+									r_Move_Ball_XY_Rom_Num <= 1;
+								elsif (w_Y_Ball_Start + c_BALL_SIZE_HALF) < (w_Y_Paddle_L_Start + c_PADDLE_LENGTH_HALF) then
+									r_Ball_Hit_Paddle_Low <= '0';
+									r_Move_Ball_XY_Rom_Num <= 0;
+								elsif w_Y_Ball_Start > (w_Y_Paddle_L_End - c_PADDLE_LENGTH_EIGTH) then
+									r_Ball_Hit_Paddle_Low <= '1';
+									r_Move_Ball_XY_Rom_Num <= 4;
+								elsif w_Y_Ball_Start > (w_Y_Paddle_L_End - c_PADDLE_LENGTH_QUARTER) then
+									r_Ball_Hit_Paddle_Low <= '1';
+									r_Move_Ball_XY_Rom_Num <= 3;
+								elsif w_Y_Ball_Start > (w_Y_Paddle_L_End - c_PADDLE_LENGTH_HALF + c_PADDLE_LENGTH_EIGTH) then
+									r_Ball_Hit_Paddle_Low <= '1';
+									r_Move_Ball_XY_Rom_Num <= 2;
+								elsif w_Y_Ball_Start > (w_Y_Paddle_L_End - c_PADDLE_LENGTH_HALF) then
+									r_Ball_Hit_Paddle_Low <= '1';
+									r_Move_Ball_XY_Rom_Num <= 1;
+								else
+									r_Ball_Hit_Paddle_Low <= '1';
+									r_Move_Ball_XY_Rom_Num <= 0;
+								end if;
 							elsif w_X_Ball_Start = 0 then
 								r_Ball_Hit_L <= not r_Ball_Hit_L;
 								sm_Ball_X_Dir <= s_Right;
@@ -266,6 +323,38 @@ begin
 							-- right movement
 							if w_X_Ball_End = w_X_Paddle_R_Start - 1 and w_Y_Ball_End > w_Y_Paddle_R_Start and w_Y_Ball_Start < w_Y_Paddle_R_End then
 								sm_Ball_X_Dir <= s_Left;
+								r_Ball_Hit_Paddle <= not r_Ball_Hit_Paddle;
+								if w_Y_Ball_End < (w_Y_Paddle_R_Start + c_PADDLE_LENGTH_EIGTH) then
+									r_Ball_Hit_Paddle_Low <= '0';
+									r_Move_Ball_XY_Rom_Num <= 4;
+								elsif w_Y_Ball_End < (w_Y_Paddle_R_Start + c_PADDLE_LENGTH_QUARTER) then
+									r_Ball_Hit_Paddle_Low <= '0';
+									r_Move_Ball_XY_Rom_Num <= 3;
+								elsif w_Y_Ball_End < (w_Y_Paddle_R_Start + c_PADDLE_LENGTH_HALF - c_PADDLE_LENGTH_EIGTH) then
+									r_Ball_Hit_Paddle_Low <= '0';
+									r_Move_Ball_XY_Rom_Num <= 2;
+								elsif w_Y_Ball_End < (w_Y_Paddle_R_Start + c_PADDLE_LENGTH_HALF) then
+									r_Ball_Hit_Paddle_Low <= '0';
+									r_Move_Ball_XY_Rom_Num <= 1;
+								elsif (w_Y_Ball_Start + c_BALL_SIZE_HALF) < (w_Y_Paddle_R_Start + c_PADDLE_LENGTH_HALF) then
+									r_Ball_Hit_Paddle_Low <= '0';
+									r_Move_Ball_XY_Rom_Num <= 0;
+								elsif w_Y_Ball_Start > (w_Y_Paddle_R_End - c_PADDLE_LENGTH_EIGTH) then
+									r_Ball_Hit_Paddle_Low <= '1';
+									r_Move_Ball_XY_Rom_Num <= 4;
+								elsif w_Y_Ball_Start > (w_Y_Paddle_R_End - c_PADDLE_LENGTH_QUARTER) then
+									r_Ball_Hit_Paddle_Low <= '1';
+									r_Move_Ball_XY_Rom_Num <= 3;
+								elsif w_Y_Ball_Start > (w_Y_Paddle_R_End - c_PADDLE_LENGTH_HALF + c_PADDLE_LENGTH_EIGTH) then
+									r_Ball_Hit_Paddle_Low <= '1';
+									r_Move_Ball_XY_Rom_Num <= 2;
+								elsif w_Y_Ball_Start > (w_Y_Paddle_R_End - c_PADDLE_LENGTH_HALF) then
+									r_Ball_Hit_Paddle_Low <= '1';
+									r_Move_Ball_XY_Rom_Num <= 1;
+								else
+									r_Ball_Hit_Paddle_Low <= '1';
+									r_Move_Ball_XY_Rom_Num <= 0;
+								end if;
 							elsif w_X_Ball_End = 639 then
 								-- Ball hit the right side
 								r_Ball_Hit_R <= not r_Ball_Hit_R;
@@ -275,6 +364,9 @@ begin
 								sm_Ball_X_Dir <= s_Right;
 							end if;
 						end case;
+						
+					r_Move_Ball_X_Rate <= c_MOVE_BALL_X_RATES(r_Move_Ball_XY_Rom_Num);
+					r_Move_Ball_Y_Rate <= c_MOVE_BALL_Y_RATES(r_Move_Ball_XY_Rom_Num);
 				else
 					w_X_Ball_Pos <= std_logic_vector(to_unsigned(c_X_BALL_START_POS, w_X_Ball_Pos'length));
 				end if;
@@ -294,6 +386,9 @@ begin
 							-- move up
 							if w_Y_Ball_Start = 0 then
 								sm_Ball_Y_Dir <= s_Down;
+							elsif r_Ball_Hit_Paddle /= r_Ball_Hit_Paddle_Ack and r_Ball_Hit_Paddle_Low = '1' then
+								r_Ball_Hit_Paddle_Ack <= not r_Ball_Hit_Paddle_Ack;
+								sm_Ball_Y_Dir <= s_Down;
 							else
 								w_Y_Ball_Pos <= w_Y_Ball_Pos - 1;
 								sm_Ball_Y_Dir <= s_Up;
@@ -302,6 +397,9 @@ begin
 						when s_Down =>
 							-- move down
 							if w_Y_Ball_End = 479 then
+								sm_Ball_Y_Dir <= s_Up;
+							elsif r_Ball_Hit_Paddle /= r_Ball_Hit_Paddle_Ack and r_Ball_Hit_Paddle_Low = '0' then
+								r_Ball_Hit_Paddle_Ack <= not r_Ball_Hit_Paddle_Ack;
 								sm_Ball_Y_Dir <= s_Up;
 							else
 								w_Y_Ball_Pos <= w_Y_Ball_Pos + 1;
@@ -333,6 +431,6 @@ begin
 	o_Y_Paddle_R_Start <= w_Y_Paddle_R_Start;
 	o_Y_Paddle_R_End <= w_Y_Paddle_R_End;
 	
-	o_Ball_Flashing <= r_Ball_Flashing when r_Ball_Flashing_On = '1' else '0';
+	o_Ball_Flashing <= r_Ball_Flashing when r_Ball_Flashing_On = '1' else '1';
 	
 end Behavioral;
